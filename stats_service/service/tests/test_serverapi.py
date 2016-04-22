@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Tests to verify the REST interface of the stats-service.
+Tests to verify the REST interface of the stats_service.
 
 Oisin Mulvihill
 2015-10-06
@@ -9,7 +9,7 @@ Oisin Mulvihill
 #import pytest
 import pkg_resources
 
-from stats.backend import analytics
+from stats_service.backend import analytics
 
 
 def test_service_is_running(logger, stats_service):
@@ -17,10 +17,10 @@ def test_service_is_running(logger, stats_service):
     """
     response = stats_service.api.ping()
 
-    pkg = pkg_resources.get_distribution("stats-service")
+    pkg = pkg_resources.get_distribution("stats_service")
 
     assert response["status"] == "ok"
-    assert response['name'] == "stats-service"
+    assert response['name'] == "stats_service"
     assert response['version'] == pkg.version
 
 

@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 """
-Setuptools script for stats-service (stats.service)
+Setuptools script for stats_service (stats_service)
 
 """
 from setuptools import setup, find_packages
 
-Name = 'stats-service'
+Name = 'stats_service'
 ProjectUrl = ""
 Version = "1.0.0"
 Author = 'Oisin Mulvihill'
@@ -29,6 +29,7 @@ needed = [
     'influxdb',
     'apiaccesstoken',
     'Pyramid',
+    'waitress',
     'stats-client',
 ]
 
@@ -50,7 +51,7 @@ PackageData = {
 
 EntryPoints = """
 [paste.app_factory]
-    main = stats.service:main
+main = stats_service.service:main
 """
 
 import sys

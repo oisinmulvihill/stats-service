@@ -1,18 +1,19 @@
 # -*- coding: utf-8 -*-
 """
-REST Service 'stats-service'
+REST Service 'stats_service'
 
 """
 import logging
 import httplib
-import pkg_resources
 
-import raven
 from pyramid.config import Configurator
-from pp.web.base import restfulhelpers
 
-from stats.backend import db
-from stats.service.authorisation import api_access_token_middleware
+from stats_service.backend import db
+from stats_service.service.authorisation import init
+from stats_service.service.authorisation import TokenMW
+from stats_service.service.restfulhelpers import xyz_handler
+from stats_service.service.restfulhelpers import JSONErrorHandler
+from stats_service.service.restfulhelpers import HttpMethodOverrideMiddleware
 
 
 def get_log(e=None):
@@ -24,32 +25,20 @@ def main(global_config, **settings):
     """
     log = get_log("main")
 
-    sentry_client = None
-    pkg = pkg_resources.get_distribution('stats-service')
-    dsn = settings.get("sentry.dsn")
-    if dsn:
-        log.debug("Setting up sentry.")
-        sentry_client = raven.Client(
-            dsn=dsn,
-            # inform the client which parts of code are yours
-            include_paths=['stats'],
-            # pass along the version of your application
-            release=pkg.version,
-        )
-        log.info("Sentry client configured OK.")
-
-    else:
-        log.warn("Nothing found for 'sentry.dsn' in config. Sentry disabled.")
-
     config = Configurator(settings=settings)
+
+    # configure basic token access
+    identities = settings['stats_service.access.identities']
+    log.info("Reading identities from file '{}'".format(identities))
+    init(identities)
 
     log.debug("Setting up databse configuration with prefix 'influxdb.'")
     db.DB.init(settings, prefix='influxdb.')
 
-    not_found = restfulhelpers.xyz_handler(httplib.NOT_FOUND)
+    not_found = xyz_handler(httplib.NOT_FOUND)
     config.add_view(not_found, context='pyramid.exceptions.NotFound')
 
-    bad_request = restfulhelpers.xyz_handler(httplib.BAD_REQUEST)
+    bad_request = xyz_handler(httplib.BAD_REQUEST)
     config.add_view(
         bad_request,
         context='pyramid.httpexceptions.HTTPBadRequest'
@@ -72,21 +61,19 @@ def main(global_config, **settings):
 
     # Pick up the views which set up the views automatically:
     #
-    config.scan("stats.service", ignore="stats.service.tests")
+    config.scan("stats_service", ignore="stats_service.tests")
 
     # Make the pyramid app I'll then wrap in other middleware:
     app = config.make_wsgi_app()
 
     # RESTful helper class to handle PUT, DELETE over POST requests:
-    app = restfulhelpers.HttpMethodOverrideMiddleware(app)
+    app = HttpMethodOverrideMiddleware(app)
 
     # Only secure token only access to POST analytics:
-    app = api_access_token_middleware(settings, app)
+    app = TokenMW(app)
 
     # Should be last to catch all errors of below wsgi apps. This
     # returns useful JSON response in the body of the 500:
-    app = restfulhelpers.JSONErrorHandler(app)
-
-    app.pnc_sentry_client = sentry_client
+    app = JSONErrorHandler(app)
 
     return app

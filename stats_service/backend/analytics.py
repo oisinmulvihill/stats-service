@@ -6,7 +6,7 @@ import time
 import logging
 import datetime
 
-from stats.service import db
+from stats_service.backend import db
 
 from influxdb.client import InfluxDBClientError
 

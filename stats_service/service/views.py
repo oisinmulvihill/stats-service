@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-stats-service
+stats_service
 
 This provides the views which are used in the dispatch routing set up.
 
@@ -10,8 +10,8 @@ import pkg_resources
 
 from pyramid.view import view_config
 
-from stats.backend import analytics
-from .authorisation import user_for_login
+from stats_service.backend import analytics
+from stats_service.service.authorisation import Access
 
 
 def get_log(e=None):
@@ -31,33 +31,31 @@ def status(request):
         dict(
             status="ok",
             name="<project name>",
-            version="<egg version of stats.service>"
+            version="<egg version of stats_service>"
         )
 
     """
-    pkg = pkg_resources.get_distribution('stats-service')
+    pkg = pkg_resources.get_distribution('stats_service')
 
     return dict(
         status="ok",
-        name="stats-service",
+        name="stats_service",
         version=pkg.version,
     )
 
 
 @view_config(route_name='log', request_method='POST', renderer="json")
 @view_config(route_name='log2', request_method='POST', renderer="json")
+@Access.auth_required
 def log_event(request):
     """Log the JSON body object as an analytic event.
 
-    This will be passed directly to stats.backend.analytics.log().
+    This will be passed directly to stats_service.backend.analytics.log().
 
     :returns: The entry_id of the created event.
 
     """
     log = get_log('log_event')
-
-    user_for_login(request)
-
     try:
         log.debug("looking for JSON body.")
         data = request.json_body
@@ -78,10 +76,11 @@ def log_event(request):
 
 @view_config(route_name='event', request_method='GET', renderer="json")
 @view_config(route_name='event2', request_method='GET', renderer="json")
+@Access.auth_required
 def recover_event(request):
     """Recover the contents of a specific event.
 
-    This will return the results of stats.backend.analytics.get(id).
+    This will return the results of stats_service.backend.analytics.get(id).
 
     :returns: The event data stored.
 

@@ -1,4 +1,4 @@
-stats-service
+stats_service
 =============
 
 Analytics Gathering REST API Endpoint for storing metrics in InfluxDB. Valid
@@ -19,7 +19,7 @@ Get the current GitHub dependancies::
     # app deps:
     git clone https://github.com/oisinmulvihill/apiaccesstoken.git
     git clone https://github.com/oisinmulvihill/stats-client.git
-    git clone https://github.com/oisinmulvihill/stats-service.git
+    git clone https://github.com/oisinmulvihill/stats_service.git
 
 Set up steps::
 
@@ -39,7 +39,7 @@ Set up steps::
     cd $SRCDIR/stats-client
     python setup.py develop
 
-    cd $SRCDIR/stats-service
+    cd $SRCDIR/stats_service
     python setup.py develop
 
 
@@ -92,14 +92,14 @@ mainly provided to aid monitoring services.
 .. sourcecode:: bash
 
     $ curl -X GET http://www.pnc:20080/ping/
-    {"status": "ok", "version": "1.0.0", "name": "stats-service"}
+    {"status": "ok", "version": "1.0.0", "name": "stats_service"}
 
 
 POST /log/event
 ```````````````
 
 Log an analytic event which is stored into :ref:`InfluxDB <influxdburi>` via the
-pnc.stats.backend.analytics.log(data) function. The analytics event JSON will
+pnc.stats_service.backend.analytics.log(data) function. The analytics event JSON will
 be passed as a dict to log(). This data dictionary must contain at least uid
 and event fields.
 

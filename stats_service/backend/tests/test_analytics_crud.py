@@ -10,7 +10,7 @@ import datetime
 
 #import pytest
 
-from stats.backend import analytics
+from stats_service.backend import analytics
 
 
 def test_dict_to_influxformat(logger):
