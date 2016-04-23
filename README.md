@@ -13,7 +13,8 @@ Get the current GitHub dependancies::
     SRCDIR=~/src
 
     # testing deps:
-    git clone https://github.com/oisinmulvihill/docker-testingaids.git
+    git clone https://github.com/oisinmulvihill/evasion-common.git
+    git clone https://github.com/oisinmulvihill/pytest-docker-service-fixtures.git
     git clone https://github.com/oisinmulvihill/pytest-docker-service-fixtures.git
 
     # app deps:
@@ -30,6 +31,9 @@ Set up steps::
     cd $SRCDIR/apiaccesstoken
     python setup.py develop
 
+    cd $SRCDIR/evasion-common
+    python setup.py develop
+
     cd $SRCDIR/docker-testingaids
     python setup.py develop
 
@@ -41,6 +45,14 @@ Set up steps::
 
     cd $SRCDIR/stats_service
     python setup.py develop
+
+
+docker images::
+
+    # download if not present and (re)start the influxdb container:
+    docker rm -f influxdb 2>/dev/null
+    docker run --name=influxdb -d -p 8083:8083 -p 8086:8086 tutum/influxdb:latest
+
 
 
 REST API

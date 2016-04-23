@@ -137,7 +137,19 @@ def log(data):
     (entry_id, idbfmt) = influxdb_format(data)
 
     log.debug("writing points to influx:{}".format(idbfmt))
-    conn.write_points(idbfmt)
+    try:
+        conn.write_points(idbfmt)
+
+    except InfluxDBClientError, e:
+        if e.code == 404:
+            log.warn(
+                "Database {} not present {}. Attempting to create.".format(
+                    conn._database, e
+                )
+            )
+            conn.create_database(conn._database)
+            log.warn("Retrying write to new DB '{}'".format(conn._database))
+            conn.write_points(idbfmt)
 
     return entry_id
 

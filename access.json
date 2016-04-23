@@ -3,8 +3,8 @@
         "username": "statsbob",
         "tokens": [
             {
-                "access_token": "",
-                "access_secret": ""
+                "access_token": "eyJleHBpcmVzIjogMTAsICJzYWx0IjogImJjODIxOCIsICJpZGVudGl0eSI6ICJzdGF0c2JvYiJ9NyjnVy3QkN9pa2H_DVe4OZLi5dydu1mB3clN2HezjI8y331ZflOHSOtgvw8JjnjlC4UFF8q1LCp0kHdj96ipDw==",
+                "access_secret": "b710164f16543eacc1a81fc889667b52403c8a300dd8c50c69f55d3e0061b22ba7e9789b61a2fd932def15c74d6fcf387ce3270c6b96579a4dcfb4a7a722354e"
             }
         ],
         "id": "user_00ca4f6190b84f25827239233c4bcbaa",

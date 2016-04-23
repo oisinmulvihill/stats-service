@@ -31,13 +31,38 @@ def init(id_json_file):
     if os.path.isfile(id_json_file):
         with codecs.open(id_json_file, 'rb', encoding='utf-8') as fd:
             log.info("recovering JSON data from '{}'".format(id_json_file))
-            _USERS = json.loads(fd.read())
+            found_users = json.loads(fd.read())
 
         log.info("configuring '{}' user(s) from '{}'".format(
-            len(_USERS), id_json_file
+            len(found_users), id_json_file
         ))
-        for user in _USERS:
+        for user in found_users:
+            if _USERS is None:
+                _USERS = {}
+
+            # create dict based lookup used in identity recovery.
+            _USERS[user['id']] = user
+
+            log.debug(
+                "loading user id='{}' username='{}'".format(
+                    user['id'], user['username']
+                )
+            )
             _USERNAME_TO_ID[user['username']] = user['id']
+            log.debug(
+                "user '{}' has '{}' token pair(s) to load.".format(
+                    user['username'], len(user['tokens'])
+                )
+            )
+            if user['tokens'] < 1:
+                log.error(
+                    (
+                        "The user '{}' has no token pairs! No access to the "
+                        "stats API will be possible for this user!"
+                    ).format(
+                        user['username'], len(user['tokens'])
+                    )
+                )
             for t in user['tokens']:
                 _SECRET_FOR_ID[t['access_token']] = t['access_secret']
 

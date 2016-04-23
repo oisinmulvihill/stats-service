@@ -9,6 +9,7 @@ import logging
 import pkg_resources
 
 from pyramid.view import view_config
+from pyramid.httpexceptions import HTTPNotFound
 
 from stats_service.backend import analytics
 from stats_service.service.authorisation import Access
@@ -82,6 +83,8 @@ def recover_event(request):
 
     This will return the results of stats_service.backend.analytics.get(id).
 
+    If the event is not found the HTTPNotFound will be raised.
+
     :returns: The event data stored.
 
     """
@@ -90,7 +93,11 @@ def recover_event(request):
     event_id = request.matchdict['id'].strip().lower()
     log.debug("Looking for event with id '{}'".format(event_id))
 
-    event_data = analytics.get(event_id)
+    try:
+        event_data = analytics.get(event_id)
+
+    except ValueError:
+        raise HTTPNotFound(event_id)
 
     log.debug("event data recovered: '{}'".format(event_data))
 
