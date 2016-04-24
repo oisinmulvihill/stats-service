@@ -1,0 +1,58 @@
+[app:main]
+use = egg:stats_service
+
+pyramid.reload_templates = false
+pyramid.debug_authorization = false
+pyramid.debug_notfound = false
+pyramid.debug_routematch = false
+pyramid.debug_templates = false
+pyramid.default_locale_name = en
+
+pyramid.includes =
+
+influxdb.host = $influxdb_host
+influxdb.port = $influxdb_port
+influxdb.user = $influxdb_user
+influxdb.password = $influxdb_password
+influxdb.db = $influxdb_db
+
+stats_service.access.identities = $access_json
+
+
+[server:main]
+use = egg:pyramid#wsgiref
+host = $host
+port = $port
+
+# Begin logging configuration
+[loggers]
+keys = root, stats
+
+[handlers]
+keys = console
+
+[formatters]
+keys = generic
+
+[logger_root]
+level = DEBUG
+handlers = console
+propagate = False
+
+[logger_stats]
+level = DEBUG
+handlers =
+qualname = stats
+propagate = False
+
+[handler_console]
+class = StreamHandler
+args = (sys.stderr,)
+level = NOTSET
+formatter = generic
+propagate = False
+
+[formatter_generic]
+format = %(asctime)s %(levelname)-5.5s [%(name)s][%(threadName)s] %(message)s
+
+# End logging configuration

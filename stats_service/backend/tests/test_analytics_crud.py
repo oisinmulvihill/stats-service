@@ -57,7 +57,7 @@ def test_dict_to_influxformat(logger):
     assert result == correct
 
 
-def test_analytics_logging_backend_api(logger, influxdb):
+def test_analytics_logging_backend_api(logger, backend):
     """Test the backend CRUD api.
 
     """

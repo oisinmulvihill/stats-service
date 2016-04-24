@@ -17,10 +17,10 @@ def test_service_is_running(logger, stats_service):
     """
     response = stats_service.api.ping()
 
-    pkg = pkg_resources.get_distribution("stats_service")
+    pkg = pkg_resources.get_distribution("stats-service")
 
     assert response["status"] == "ok"
-    assert response['name'] == "stats_service"
+    assert response['name'] == "stats-service"
     assert response['version'] == pkg.version
 
 

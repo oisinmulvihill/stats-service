@@ -66,18 +66,6 @@ def influxdb_format(d, now=None, entry_id=None):
     if not entry_id:
         entry_id = eid()
 
-    #columns = {"time":"", "entry_id":""}
-    # columns.update(fields)
-    # Row = namedtuple('Row', columns)
-
-    # kw = {}
-    # for k in d:
-    #     if k == 'time':
-    #         kw['time'] = now
-
-    #     else:
-    #         kw[k] = d[k]
-
     returned = [
         {
             "measurement": TABLE_NAME,
@@ -99,7 +87,11 @@ def count():
 
     conn = db.DB.conn()
     try:
-        sql = "select count(entry_id) from {} group by time(1u) ".format(
+        sql = (
+            r"SELECT count(entry_id) FROM {} "
+            r"WHERE time(1u) "
+            r"GROUP BY time(1u) "
+        ).format(
             TABLE_NAME
         )
         results = len(conn.query(sql))
@@ -173,11 +165,17 @@ def get(entry_id):
 
     conn = db.DB.conn()
 
-    sql = "select * from {} where entry_id = '{}'".format(TABLE_NAME, entry_id)
+    sql = (
+        r"SELECT count(entry_id) FROM {} "
+        r"WHERE time(1u) AND entry_id = '{}'"
+        r"GROUP BY time(1u) "
+    ).format(
+        TABLE_NAME,
+        entry_id,
+    )
     log.debug("Looking for analytic event '{}'".format(entry_id))
 
     found = conn.query(sql)
-
     if not len(found):
         raise ValueError("Nothing found for entry_id '{}'".format(entry_id))
 
