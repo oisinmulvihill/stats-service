@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 """
+import os
 import uuid
 import time
 import logging
@@ -15,7 +16,9 @@ def get_log(e=None):
     return logging.getLogger("{0}.{1}".format(__name__, e) if e else __name__)
 
 
-TABLE_NAME = "analytics"
+def table_name():
+    """Get the environment variable TABLE_NAME or 'analytics' by default."""
+    return os.environ.get('TABLE_NAME', 'analytics')
 
 
 # http://stackoverflow.com/questions/6999726/
@@ -36,7 +39,7 @@ def eid():
     return i.replace('-', '')
 
 
-def influxdb_format(d, now=None, entry_id=None):
+def influxdb_format(d, now=None):
     """Convert to format I can POST to influxdb.
 
     This is based on the format described here:
@@ -52,29 +55,68 @@ def influxdb_format(d, now=None, entry_id=None):
     into a milliseconds epoch time and used as the "time" column added to aid
     ordering.
 
-    :returns: (entry_id, [write points])
+    :returns: (event_id, [write points])
 
     """
+    if 'now' not in d:
+        if now:
+            d['now'] = unix_time_millis(now)
+        else:
+            d['now'] = time.time()
+
+    if now:
+        d['now'] = unix_time_millis(now)
+
+    if 'event_id' not in d:
+        d['event_id'] = eid()
+
+    event_id = d['event_id']
+
     fields = d.keys()
     fields.sort()
 
-    if not now:
-        now = time.time()
-    else:
-        now = unix_time_millis(now)
-
-    if not entry_id:
-        entry_id = eid()
-
     returned = [
         {
-            "measurement": TABLE_NAME,
+            "measurement": table_name(),
             "tags": d,
             "fields": d,
         }
     ]
 
-    return (entry_id, returned)
+    return (event_id, returned)
+
+
+def find(**kwargs):
+    """A rough-and-ready search by key-values or just return all items.
+
+    This is used mainly for testing purposes.
+
+    """
+    log = get_log("find")
+
+    conn = db.DB.conn()
+    table = table_name()
+    try:
+        where = ""
+        for key, value in kwargs.items():
+            where = "{} = '{}' ".format(key, value)
+
+        if where:
+            sql = r"SELECT * FROM {} WHERE {}".format(table, where)
+
+        else:
+            sql = r"SELECT * FROM {}".format(table)
+
+        log.debug("sql: {}".format(sql))
+        results = [i for i in conn.query(sql)]
+        if results:
+            results = results[0]
+
+    except InfluxDBClientError as e:
+        log.warn("column or table not found: {}".format(e))
+        results = 0
+
+    return results
 
 
 def count():
@@ -87,14 +129,12 @@ def count():
 
     conn = db.DB.conn()
     try:
-        sql = (
-            r"SELECT count(entry_id) FROM {} "
-            r"WHERE time(1u) "
-            r"GROUP BY time(1u) "
-        ).format(
-            TABLE_NAME
-        )
-        results = len(conn.query(sql))
+        sql = r"SELECT * FROM {}".format(table_name())
+        results = [i for i in conn.query(sql)]
+        if results:
+            results = len(results[0])
+        else:
+            results = 0
 
     except InfluxDBClientError as e:
         log.warn("column or table not found: {}".format(e))
@@ -126,7 +166,7 @@ def log(data):
     conn = db.DB.conn()
 
     log.debug("formatting for influx: {}".format(data))
-    (entry_id, idbfmt) = influxdb_format(data)
+    (event_id, idbfmt) = influxdb_format(data)
 
     log.debug("writing points to influx:{}".format(idbfmt))
     try:
@@ -143,44 +183,43 @@ def log(data):
             log.warn("Retrying write to new DB '{}'".format(conn._database))
             conn.write_points(idbfmt)
 
-    return entry_id
+    return event_id
 
 
-def get(entry_id):
+def get(event_id):
     """Recover a specific anayltics event based on its unique id.
 
-    :param entry_id: The unique analytic event id string.
+    :param event_id: The unique analytic event id string.
 
     Not sure this is the best way but I'm only using this in testing at
     the moment.
 
     :returns: A dict of the found analytic event.
 
-    If the entry_id was not found then ValueError will be raised.
+    If the event_id was not found then ValueError will be raised.
 
     """
     log = get_log("get")
 
-    assert entry_id
+    assert event_id
 
     conn = db.DB.conn()
 
-    sql = (
-        r"SELECT count(entry_id) FROM {} "
-        r"WHERE time(1u) AND entry_id = '{}'"
-        r"GROUP BY time(1u) "
-    ).format(
-        TABLE_NAME,
-        entry_id,
+    sql = r"SELECT * FROM {} WHERE event_id = '{}'".format(
+        table_name(),
+        event_id,
     )
-    log.debug("Looking for analytic event '{}'".format(entry_id))
+    log.debug("Looking for analytic event '{}'".format(event_id))
 
-    found = conn.query(sql)
-    if not len(found):
-        raise ValueError("Nothing found for entry_id '{}'".format(entry_id))
+    found = None
+    for i in conn.query(sql):
+        found = i
+        break
 
-    item = found[0]
-    data = dict(zip(item['columns'], item['points'][0]))
-    log.debug("found for entry_id '{}': {}".format(entry_id, data))
+    if found is None:
+        raise ValueError("Nothing found for event_id '{}'".format(event_id))
+
+    data = found[0]
+    log.debug("found for event_id '{}': {}".format(event_id, data))
 
     return data

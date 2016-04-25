@@ -11,7 +11,8 @@ from apiaccesstoken import tokenmanager
 from pytest_service_fixtures.io import *
 from pytest_service_fixtures.service import *
 
-from stats_service.backend.tests.conftest import backend
+# imported to get py.test finding the fixture
+from stats_service.backend.tests.conftest import *
 
 
 def get_log(e=None):

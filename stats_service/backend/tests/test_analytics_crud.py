@@ -14,47 +14,41 @@ from stats_service.backend import analytics
 
 
 def test_dict_to_influxformat(logger):
-    """Test the conversion of a dict into the influxdb write points format.
+    """Test providing and not providing event_id field.
     """
-    entry_id = analytics.eid()
-    data = {
+    event_id1 = analytics.eid()
+    has_event_id_data = {
         "time": 1415793092000.01,
-        "entry_id": entry_id,
-        "username": "sam270400",
-        "competition_id": 1814,
-        "app_node": "app-04",
-        "vote": 1,
-        "video_id": 25944,
-        "http_x_real_ip": "86.25.91.110",
+        "event_id": event_id1,
+        "event": "test.evt"
     }
     now = datetime.datetime(2014, 11, 12, 11, 51, 32, 10)
     ts = analytics.unix_time_millis(now)
 
-    fields = data.keys()
-    fields.sort()
+    eid, result = analytics.influxdb_format(has_event_id_data, now)
 
-    entry_id2, result = analytics.influxdb_format(data, now, entry_id)
+    assert event_id1 == eid
 
     d = dict(
         time=ts,
-        entry_id=entry_id,
-        username=data['username'],
-        competition_id=data['competition_id'],
-        app_node=data['app_node'],
-        vote=data['vote'],
-        video_id=data['video_id'],
-        http_x_real_ip=data['http_x_real_ip'],
+        event_id=event_id1,
+        event='test.evt',
     )
 
-    correct = [
-        {
-            "measurement": analytics.TABLE_NAME,
-            "tags": d,
-            "fields": d
-        }
-    ]
+    assert result[0]['fields']['time'] == d['time']
+    assert result[0]['fields']['event_id'] == d['event_id']
+    assert result[0]['fields']['event'] == d['event']
+    assert result[0]['measurement'] == analytics.table_name()
 
-    assert result == correct
+    has_not_event_id_data = {
+        "time": 1415793092000.01,
+        "event": "test.evt.2"
+    }
+
+    eid, result = analytics.influxdb_format(has_not_event_id_data, now)
+    assert eid
+    assert "event_id" in result[0]['fields']
+    assert result[0]['fields']['event_id'] == eid
 
 
 def test_analytics_logging_backend_api(logger, backend):
@@ -65,31 +59,45 @@ def test_analytics_logging_backend_api(logger, backend):
     assert analytics.count() == 0
 
     data = {
-        # required:
         "uid": "user-86522",
         "event": "pnc.video.vote",
-        # optional:
         "username": "sam270400",
-        "competition_id": 1814,
+        "competition_id": '1814',
         "http_user_agent": "PNC/3.2.2 (iPod touch; iOS 8.1; Scale/2.00)",
         "name": "sam270400",
         "competition_name": "Cutest Pets!!!",
         "datetime": "2015-11-11T15:37:07",
         "app_node": "app-04",
         "location": "GB",
-        "vote": 1,
-        "video_id": 25944,
+        "vote": '1',
+        "video_id": '25944',
         "video_title": "bunny shadow",
         "http_x_real_ip": "86.25.91.110",
     }
 
-    # Create a new event:
-    entry_id = analytics.log(data)
+    data2 = {
+        "uid": "user-32790",
+        "event": "status.update",
+        "competition_id": '1814',
+        "value": "happy",
+        "http_x_real_ip": "86.25.91.110",
+    }
 
-    assert analytics.count() == 1
+    event_id1 = analytics.log(data)
+    event_id2 = analytics.log(data2)
+
+    assert analytics.count() == 2
+
+    # very basic querying, not super useful as there service is most for
+    # writing the recovering data from:
+    results = analytics.find()
+    assert len(results) == 2
+    assert len(analytics.find(event='pnc.video.vote')) == 1
+    assert len(analytics.find(not_in_keys='stuff')) == 0
+    assert len(analytics.find(competition_id='1814')) == 2
 
     # a quick check of some fields
-    entry = analytics.get(entry_id)
+    entry = analytics.get(event_id1)
 
     assert entry['uid'] == data['uid']
     assert entry['event'] == data['event']
@@ -108,4 +116,7 @@ def test_analytics_logging_backend_api(logger, backend):
 
     # extra fields which should be present and not empty after logging:
     assert entry['time'] is not None
-    assert entry['entry_id'] is not None
+    assert entry['event_id'] is not None
+
+    entry2 = analytics.get(event_id2)
+    assert entry2['uid'] == data2['uid']
