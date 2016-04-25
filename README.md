@@ -53,6 +53,26 @@ docker images::
     docker rm -f influxdb 2>/dev/null
     docker run --name=influxdb -d -p 8083:8083 -p 8086:8086 tutum/influxdb:latest
 
+    # https://github.com/monitoringartist/grafana-xxl
+    #
+    # grafana storage:
+    docker stop grafana-storage ; docker rm grafana-storage ; docker run -dt -v $HOME/grafana:/var/lib/grafana --name grafana-storage busybox:latest
+
+    # Grafana interface, persisting set up to disk:
+    docker stop grafana ; docker rm grafana ; docker run \
+        -d \
+        --restart=always \
+        --name=grafana \
+        -p 3000:3000 \
+        --link grafana-storage \
+        --volumes-from grafana-storage \
+      monitoringartist/grafana-xxl
+
+Run the stats-service to start collecting measurements::
+
+    # Now run the stats-service
+    cd $SRCDIR/stats_service
+    pserve development.ini
 
 
 REST API
@@ -72,27 +92,40 @@ log analytic events to. For example:
 
 .. sourcecode:: bash
 
-    $ DATA='{"event": "pnc.test", "uid": "oisin", "now": "'"$(date)"'"}'
-    $ curl -X POST -d "$DATA" http://www.pnc:20080/log/event/
+    # The access token from a user in the access.json file the server uses:
+    TOKEN="eyJleHBpcmVzIjogMTAsICJzYWx0IjogImJjODIxOCIsICJpZGVudGl0eSI6ICJzdGF0c2JvYiJ9NyjnVy3QkN9pa2H_DVe4OZLi5dydu1mB3clN2HezjI8y331ZflOHSOtgvw8JjnjlC4UFF8q1LCp0kHdj96ipDw=="
+
+    # Basic payload, the "event" & "uid" fields are required the rest are
+    # optional
+    DATA='{"event": "pnc.test", "uid": "oisin", "now": "'"$(date)"'"}'
+
+    curl -H "Accept: application/json" \
+         -H "Content-Type: application/json" \
+         -H "Authorization: Token $TOKEN" \
+         -X POST \
+         -d "$DATA" \
+         http://www.pnc:20080/log/event/
+
     "entry_4a42fcc243884bb58cb6d00759c2955d"
 
-In this example the REST service is running on the :ref:`devbox <devbox>` is used.
-Logging manually like this is not ideal. Instead for Python applications the
-:ref:`Python stats client library <pncstatsclientrepo>` is used. This makes
-sure the required fields are present and provides standard event names without
-having to bother the end user with the details.
+In this example the REST service is running on my vagrant devbox. The REST
+stats-service primary purpose is to log events. Individual events can be
+recovered, however there is no querying API. This is where Grafana or the
+InfluxDB admin interface come in. A basic example recovering above event via
+the API is::
 
-The REST service is only used to log events. It is not intended for use in
-reporting or recoverying the events.
+.. sourcecode:: bash
+
+    curl -H "Content-Type: application/json" \
+         -H "Authorization: Token $TOKEN" \
+         -X GET \
+         http://www.pnc:20080/log/event/entry_d53a4f0bd16341e7a2ce86aaeec99d21
+
+    {"uid": "oisin", "event_id": "entry_d53a4f0bd16341e7a2ce86aaeec99d21", "hostname": null, "datetime": null, "time": "2016-04-25T12:29:48.844949259Z", "now": "Mon 25 Apr 2016 13:29:48 BST", "event": "pnc.test"}
 
 
 REST API
 ~~~~~~~~
-
-The API doesn't have any authentication. I'm planning to switch this soon over
-to Token access once http://stuff> is public. If your
-using Python use the pnc-stats-client library instead. Ideally every language
-we use should wrap the api and make it nice :)
 
 
 GET /ping
@@ -104,78 +137,128 @@ mainly provided to aid monitoring services.
 .. sourcecode:: bash
 
     $ curl -X GET http://www.pnc:20080/ping/
-    {"status": "ok", "version": "1.0.0", "name": "stats_service"}
+    {"status": "ok", "version": "1.0.0", "name": "stats-service"}
 
 
 POST /log/event
 ```````````````
 
-Log an analytic event which is stored into :ref:`InfluxDB <influxdburi>` via the
-pnc.stats_service.backend.analytics.log(data) function. The analytics event JSON will
-be passed as a dict to log(). This data dictionary must contain at least uid
-and event fields.
+Log an analytic event which is stored into InfluxDB via the
+stats_service.backend.analytics.log(data) function. The analytics event JSON
+will be passed as a dict to log(). This data dictionary must contain at least
+uid and event fields.
 
 The 'uid' field is the unique id used to tie analytic events together as part
 of the same session. It can be empty but the field is required.
 
 The 'event' field is the the end user classification string of the event. For
-example 'pnc.user.log'.
+example 'pnc.user.login'.
 
 The 'time' epoch timestamp will be added automatically to the data. There
 will also be an 'entry_<UUID4>' id given to the specific event.
 
 Other fields present will be stored without any further processing. The data
 needs to JSON-able and field names can't have anything other then alphanumeric
-characters in them. This is an :ref:`InfluxDB <influxdburi>` restriction.
+characters in them. This is an InfluxDB restriction.
 
-The events are stored in a timeseries called "analytics" in :ref:`InfluxDB <influxdburi>`.
+The events are stored in a measurement called "analytics" in InfluxDB. On the
+server side. The environment variable TABLE_NAME is used. If its empty
+"analytics" is used by default. The measurement or table will be created when
+the first event is logged.
 
 .. sourcecode:: bash
 
-    $ DATA='{"event": "pnc.test", "uid": "oisin", "now": "'"$(date)"'"}'
-    $ curl -X POST -d "$DATA" http://www.pnc:20080/log/event/
+    # The access token from a user in the access.json file the server uses:
+    TOKEN="eyJleHBpcmVzIjogMTAsICJzYWx0IjogImJjODIxOCIsICJpZGVudGl0eSI6ICJzdGF0c2JvYiJ9NyjnVy3QkN9pa2H_DVe4OZLi5dydu1mB3clN2HezjI8y331ZflOHSOtgvw8JjnjlC4UFF8q1LCp0kHdj96ipDw=="
+
+    # Basic payload, the "event" & "uid" fields are required the rest are
+    # optional
+    DATA='{"event": "pnc.test", "uid": "oisin", "now": "'"$(date)"'"}'
+
+    curl -H "Accept: application/json" \
+         -H "Content-Type: application/json" \
+         -H "Authorization: Token $TOKEN" \
+         -X POST \
+         -d "$DATA" \
+         http://www.pnc:20080/log/event/
+
     "entry_4a42fcc243884bb58cb6d00759c2955d"
 
 
 stats-client
 ------------
 
-The :ref:`Python stats client library <pncstatsclientrepo>` is very straight
-forward to use. The follow is an example of its usage.
+The Python stats-client library is very straight forward to use. The follow is
+an example of its usage. The idea is you create your own in-house stats-client
+library and use this one as a base for the authentication set up.
 
+I have created my own-in house version to track purchases and tie it with
+google channels. I track login and logout failures to see early warnings of
+problems. In the past I've used it to track image encoding Jobs running
+Celery. I was able to see if the worker queue were growing and if the workers
+were failing.
 
 Set Up
 ~~~~~~
-
-.. _pncstatsclientsetup:
 
 The library needs to be configured with the correct end point:
 
 .. sourcecode:: python
 
     # Import the client library then configure it with the correct end point:
-    from stats_client import analytics
+    from stats_client.client.analytics import Analytics
 
     # http://localhost:20800" is the service running on the devbox:
-    analytics.init(dict(
+    Analytics.init(dict(
+        url="http://localhost:20800",
         access_token="<token data>",
-        uri="http://localhost:20800",
+        defer=False | True
     ))
+
+The defer field is used to indicate you wish to wait for the event to
+successfully POST and the server return. If this is True then a thread will
+take over the actually logging of the event and immediately return.
 
 
 Usage
 ~~~~~
 
-Now from anywhere in the code you can log events, for example a system startup
-of the api service:
+Now from anywhere in the code you can log events. As an example of a custom
+event, I've created a simple system startup call. I use this in all of my
+services. I can then see from grafana dashboard what is going on, are any
+services constantly restarting.
 
 .. sourcecode:: python
 
-    from stats_client import stats
+    from stats_client.client.analytics import Analytics
 
     # Log that the application has started.
-    stats().system_startup()
+    Analytics.stats().system_startup()
 
-The stats_client.analytics:Analytics class provides many methods which can
-be used. The stats() function returns the instance configured Analytics by a
-call to init({...}).
+The Analytics class provides many methods which can be used. The stats()
+function returns the instance configured Analytics by a call to init({...}).
+
+Behind the scene the system_startup wraps a call to log(). It looks like:
+
+.. sourcecode:: python
+
+    import socket
+    from stats_client.client.analytics import Analytics
+
+    api = Analytics.stats()
+
+    data = dict(
+        event='server.start',
+        uid="system-{}".format(self.app_node),
+        ip=socket.gethostbyname(self.app_node),
+        app_node=self.app_node,
+    )
+
+    api.log(data)
+
+The event is a string and i have have a format i use for this. You are free to
+choose your own. The 'uid' in this case will be used to collect all events
+for that specific system. In the above case uid would become 'system-devbox'
+running off my vagrant devbox. In production this would be the hostname of the
+machine/VM/docker container/etc. In the above example self.app_node is set to
+the system hostname when the Analytics is instanciated.
