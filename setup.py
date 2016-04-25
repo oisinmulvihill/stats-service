@@ -5,7 +5,7 @@ Setuptools script for stats_service (stats_service)
 """
 from setuptools import setup, find_packages
 
-Name = 'stats_service'
+Name = 'stats-service'
 ProjectUrl = ""
 Version = "1.0.0"
 Author = 'Oisin Mulvihill'
