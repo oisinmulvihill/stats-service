@@ -15,7 +15,6 @@ Get the current GitHub dependancies::
     # testing deps:
     git clone https://github.com/oisinmulvihill/evasion-common.git
     git clone https://github.com/oisinmulvihill/pytest-docker-service-fixtures.git
-    git clone https://github.com/oisinmulvihill/pytest-docker-service-fixtures.git
 
     # app deps:
     git clone https://github.com/oisinmulvihill/apiaccesstoken.git
