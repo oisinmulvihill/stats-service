@@ -40,7 +40,7 @@ def status(request):
 
     return dict(
         status="ok",
-        name="stats_service",
+        name="stats-service",
         version=pkg.version,
     )
 
@@ -53,7 +53,7 @@ def log_event(request):
 
     This will be passed directly to stats_service.backend.analytics.log().
 
-    :returns: The entry_id of the created event.
+    :returns: The event_id of the created event.
 
     """
     log = get_log('log_event')
@@ -68,11 +68,11 @@ def log_event(request):
 
     log.debug("logging received data: {}".format(data))
 
-    entry_id = analytics.log(data)
+    event_id = analytics.log(data)
 
-    log.debug("event logged its unique id is '{}'".format(entry_id))
+    log.debug("event logged its unique id is '{}'".format(event_id))
 
-    return entry_id
+    return event_id
 
 
 @view_config(route_name='event', request_method='GET', renderer="json")

@@ -66,12 +66,11 @@ def access_json(tmpdir_factory, user_bob):
     """
     fn = tmpdir_factory.mktemp('data').join('access.json')
 
-    with codecs.open(fn, 'wb', encoding='utf-8') as fd:
-        fd.write(json.dumps(
-            [user_bob],
-            # aid debugging if by dumping in a more readable way:
-            indent=4
-        ))
+    fn.write(json.dumps(
+        [user_bob],
+        # aid debugging if by dumping in a more readable way:
+        indent=4
+    ))
 
     return fn
 
@@ -81,7 +80,7 @@ class AnalyticsServerRunner(BasePyramidServerRunner):
 
     def template_config(self):
         """Return the contents of stats_test_cfg.template."""
-        return resource_string(__name__, 'stats_test_cfg.template')
+        return resource_string(__name__, 'test_cfg.ini.template')
 
 
 @pytest.fixture
@@ -92,26 +91,24 @@ def stats_service(request, backend, user_bob, access_json):
     log = get_log("server")
 
     test_server = AnalyticsServerRunner(dict(
-        interface=server_interface,
         access_json=access_json,
-        influxdb_host=backend.host,
-        influxdb_port=backend.port,
-        influxdb_user=backend.user,
-        influxdb_password=backend.password,
-        influxdb_db=backend.db,
+        influxdb_host=backend['host'],
+        influxdb_port=backend['port'],
+        influxdb_user=backend['user'],
+        influxdb_password=backend['password'],
+        influxdb_db=backend['db'],
     ))
 
     # Set up the client side rest api and set it up with the URI of the
     # running test service.
-    from stats_client.client import Analytics
-
+    from stats_client.client.analytics import Analytics
     log.debug("server: setting up REST client API for URI '{}'.".format(
         test_server.URI
     ))
 
     # Attach to the server object:
     test_server.api = Analytics(dict(
-        uri=test_server.URI,
+        url=test_server.URI,
         access_token=user_bob['tokens'][0]['access_token'],
         defer=False
     ))

@@ -38,36 +38,30 @@ def test_log_event(logger, stats_service):
         "uid": "user-86522",
         "event": "pnc.user.view",
         # optional:
-        "username": "sam270400",
         "http_user_agent": "FlappyBird/1.0 (iPod touch; iOS 8.1; Scale/2.00)",
-        "name": "sam270400",
-        "datetime": "2015-11-11T15:37:07",
-        "app_node": "app-04",
+        "app_node": "super-node-04",
         "location": "GB",
         "http_x_real_ip": "86.25.91.110",
     }
 
     # Create a new event:
-    entry_id = stats_service.api.log(data)
+    event_id = stats_service.api.log(data)
 
-    assert entry_id is not None
+    assert event_id is not None
 
     assert analytics.count() == 1
 
     # The is no GET api at the moment have a quick look in the backend and
     # see its ok:
-    entry = analytics.get(entry_id)
+    entry = analytics.get(event_id)
 
     assert entry['uid'] == data['uid']
     assert entry['event'] == data['event']
-    assert entry['username'] == data['username']
     assert entry['http_user_agent'] == data['http_user_agent']
-    assert entry['name'] == data['name']
-    assert entry['datetime'] == data['datetime']
     assert entry['app_node'] == data['app_node']
     assert entry['location'] == data['location']
     assert entry['http_x_real_ip'] == data['http_x_real_ip']
 
     # extra fields which should be present and not empty after logging:
-    assert entry['time'] is not None
-    assert entry['entry_id'] is not None
+    assert 'time' in entry
+    assert 'event_id' in entry

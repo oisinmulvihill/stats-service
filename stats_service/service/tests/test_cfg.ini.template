@@ -37,20 +37,17 @@ keys = generic
 [logger_root]
 level = DEBUG
 handlers = console
-propagate = False
 
 [logger_stats]
 level = DEBUG
-handlers =
+handlers = console
 qualname = stats
-propagate = False
 
 [handler_console]
 class = StreamHandler
 args = (sys.stderr,)
 level = NOTSET
 formatter = generic
-propagate = False
 
 [formatter_generic]
 format = %(asctime)s %(levelname)-5.5s [%(name)s][%(threadName)s] %(message)s
