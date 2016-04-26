@@ -93,6 +93,35 @@ Running the tests (re)using an exiting InfluxDB container::
     py.test -sv
 
 
+Server Authentication Set Up
+----------------------------
+
+The server looks for access.json to load the users and their token pairs. Don't
+use the access.json in the Github stats-service repository. This is not secure
+as everyone will have the keys for this. Instead generate an access.json using
+the "accesshelper" command line tool::
+
+    $ accesshelper --access_json=/tmp/access.json
+
+    The file /tmp/access.json was written successfully for username 'statsbob'. The following
+    access_token can be used:
+
+    eyJleHBpcmVzIjogMTAsICJzYWx0IjogIjlkZGI1ZSIsICJpZGVudGl0eSI6ICJzdGF0c2JvYiJ9y6Grs3WUvo_6OTw62Q8ZjZ412hSdWQG7LME1eWVxxSeucmrhYyfJnuoXwygL_TYKLy6gMcOJ5PDpvEGEaAvGqw==
+
+You can then set the server configuration to use this file. Set the [app:main]
+section's stats_service.access.identities to absolute path to this new file.
+For example in the above case this would become::
+
+    [app:main]
+    :
+
+    stats_service.access.identities = /tmp/access.json
+
+    :
+
+Doing this will secure the service so only you can log events.
+
+
 REST API
 --------
 
