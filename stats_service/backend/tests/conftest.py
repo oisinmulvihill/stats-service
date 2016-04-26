@@ -45,10 +45,24 @@ def backend(request, influxdb):
 
     log.info('database ready for testing "{}"'.format(influxdb.db))
 
-    # def db_teardown(x=None):
-    #     log.warn('teardown database for testing "{}"'.format(dbconn.db))
-    #     db.DB.drop_database()
+    def db_teardown(x=None):
+        log.warn('teardown database for testing "{}"'.format(dbconn.db))
+        for i in range(10):
+            try:
+                db.DB.drop_database()
 
-    # request.addfinalizer(db_teardown)
+            except ConnectionError, e:
+                log.debug("waiting for DB to be ready: {}".format(e))
+                time.sleep(1)
+
+            except:
+                log.exception("General failure doing drop_database: ")
+                time.sleep(1)
+
+            else:
+                log.info("DB ready to roll.")
+                break
+
+    request.addfinalizer(db_teardown)
 
     return config
