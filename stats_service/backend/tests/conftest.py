@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
 """
 """
+import time
 import logging
 
 from pytest_service_fixtures.io import *
 from pytest_service_fixtures.service import *
+from requests.exceptions import ConnectionError
 
 
 def get_log(e=None):
@@ -29,7 +31,18 @@ def backend(request, influxdb):
     from stats_service.backend import db
 
     db.DB.init(config)
-    db.DB.create_database()
+    for i in range(30):
+        try:
+            db.DB.create_database()
+
+        except ConnectionError, e:
+            log.debug("waiting for DB to be ready: {}".format(e))
+            time.sleep(1)
+
+        else:
+            log.info("DB ready to roll.")
+            break
+
     log.info('database ready for testing "{}"'.format(influxdb.db))
 
     # def db_teardown(x=None):
