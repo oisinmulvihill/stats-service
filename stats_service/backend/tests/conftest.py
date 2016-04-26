@@ -37,11 +37,15 @@ def backend(request, influxdb):
 
         except ConnectionError, e:
             log.debug("waiting for DB to be ready: {}".format(e))
-            time.sleep(1)
+
+        except influxdb.InfluxDBClientError, e:
+            log.debug("waiting for DB connection: {}".format(e))
 
         else:
             log.info("DB ready to roll.")
             break
+
+        time.sleep(1)
 
     log.info('database ready for testing "{}"'.format(influxdb.db))
 
