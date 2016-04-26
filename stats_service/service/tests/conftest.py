@@ -84,11 +84,29 @@ class AnalyticsServerRunner(BasePyramidServerRunner):
 
 
 @pytest.fixture
-def stats_service(request, backend, user_bob, access_json):
+def stats_service(request, user_bob, access_json):
     """Pytest fixture to run a test instance of the service.
 
     """
     log = get_log("server")
+
+    use_env = os.environ.get("DKInfluxDB_UseENV", "no").strip().lower()
+    log.debug("DKInfluxDB_UseENV={}".format(use_env))
+    if use_env == "yes":
+        backend = {}
+        backend['host'] = os.environ.get("DKInfluxDB_HOST")
+        log.info("DKInfluxDB_HOST={}".format(backend['host']))
+        backend['port'] = int(os.environ.get("DKInfluxDB_PORT"))
+        log.info("DKInfluxDB_PORT={}".format(backend['port']))
+        backend['user'] = os.environ.get("DKInfluxDB_USER")
+        log.info("DKInfluxDB_USER={}".format(backend['user']))
+        backend['password'] = os.environ.get("DKInfluxDB_PASSWORD")
+        log.info("DKInfluxDB_PASSWORD={}".format(backend['password']))
+        backend['db'] = os.environ.get("DKInfluxDB_DB")
+        log.info("DKInfluxDB_DB={}".format(backend['db']))
+
+    else:
+        backend = request.getfuncargvalue('backend')
 
     test_server = AnalyticsServerRunner(dict(
         access_json=access_json,
