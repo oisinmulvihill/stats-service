@@ -42,7 +42,7 @@ Set up steps::
     cd $SRCDIR/stats-client
     python setup.py develop
 
-    cd $SRCDIR/stats_service
+    cd $SRCDIR/stats-service
     python setup.py develop
 
 
@@ -72,6 +72,25 @@ Run the stats-service to start collecting measurements::
     # Now run the stats-service
     cd $SRCDIR/stats_service
     pserve development.ini
+
+
+Running the tests (re)using an exiting InfluxDB container::
+
+    workon stats
+    easy_install pytest docker-py
+
+    # on devbox:
+    export DK_CONFIG_FILE=$HOME/dk_config.yaml
+    export DKInfluxDB_UseENV=yes
+    export DKInfluxDB_PORT=8086
+    export DKInfluxDB_HOST=localhost
+    export DKInfluxDB_USER=root
+    export DKInfluxDB_PASSWORD=root
+    export DKInfluxDB_DB=test_analytics
+
+    cd ~/src/stats-service
+
+    py.test -sv
 
 
 REST API

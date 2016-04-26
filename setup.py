@@ -29,7 +29,6 @@ needed = [
     'influxdb',
     'apiaccesstoken',
     'Pyramid',
-    'waitress',
     'stats-client',
 ]
 
@@ -40,7 +39,7 @@ test_needed = [
 test_suite = ''
 
 EagerResources = [
-    'stats',
+    'stats_service',
 ]
 ProjectScripts = [
 ]
