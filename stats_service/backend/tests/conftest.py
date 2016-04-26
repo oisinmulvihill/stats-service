@@ -31,7 +31,7 @@ def backend(request, influxdb):
     from stats_service.backend import db
 
     db.DB.init(config)
-    for i in range(30):
+    for i in range(90):
         try:
             db.DB.create_database()
 
