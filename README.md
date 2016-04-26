@@ -1,4 +1,4 @@
-stats_service
+stats-service
 =============
 
 Analytics Gathering REST API Endpoint for storing metrics in InfluxDB. Valid

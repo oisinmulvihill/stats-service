@@ -48,7 +48,11 @@ PackageData = {
     '': ['*.*'],
 }
 
+
 EntryPoints = """
+[console_scripts]
+accesshelper = stats_service.service.scripts.main:main
+
 [paste.app_factory]
 main = stats_service.service:main
 """
