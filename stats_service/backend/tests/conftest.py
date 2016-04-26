@@ -46,7 +46,7 @@ def backend(request, influxdb):
     log.info('database ready for testing "{}"'.format(influxdb.db))
 
     def db_teardown(x=None):
-        log.warn('teardown database for testing "{}"'.format(dbconn.db))
+        log.warn('teardown database for testing "{}"'.format(config['db']))
         for i in range(10):
             try:
                 db.DB.drop_database()
