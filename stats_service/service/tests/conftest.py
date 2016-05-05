@@ -125,7 +125,7 @@ def stats_service(request, user_bob, access_json):
     ))
 
     # Attach to the server object:
-    test_server.api = Analytics(dict(
+    test_server.api = Analytics.init(dict(
         url=test_server.URI,
         access_token=user_bob['tokens'][0]['access_token'],
         defer=False

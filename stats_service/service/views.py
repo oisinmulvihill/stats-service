@@ -56,6 +56,7 @@ def log_event(request):
 
     """
     log = get_log('log_event')
+    data = None
     try:
         log.debug("looking for JSON body points data.")
         data = request.json_body
@@ -68,6 +69,6 @@ def log_event(request):
         except ValueError:
             log.error("No useful points data can be recovered.")
 
-        else:
-            log.debug("logging received data: {}".format(data))
-            analytics.log(data)
+    if data is not None:
+        log.debug("logging received data: {}".format(data))
+        analytics.log(data)
