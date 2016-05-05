@@ -5,6 +5,7 @@ stats_service
 This provides the views which are used in the dispatch routing set up.
 
 """
+import json
 import logging
 import pkg_resources
 
@@ -53,52 +54,20 @@ def log_event(request):
 
     This will be passed directly to stats_service.backend.analytics.log().
 
-    :returns: The event_id of the created event.
-
     """
     log = get_log('log_event')
     try:
-        log.debug("looking for JSON body.")
+        log.debug("looking for JSON body points data.")
         data = request.json_body
 
     except ValueError:
-        # no data present
-        log.error("no JSON body found.")
-        data = {}
+        log.error("none found in JSON encoded-body. Trying from raw body.")
+        try:
+            data = json.loads(request.body)
 
-    log.debug("logging received data: {}".format(data))
+        except ValueError:
+            log.error("No useful points data can be recovered.")
 
-    event_id = analytics.log(data)
-
-    log.debug("event logged its unique id is '{}'".format(event_id))
-
-    return event_id
-
-
-@view_config(route_name='event', request_method='GET', renderer="json")
-@view_config(route_name='event2', request_method='GET', renderer="json")
-@Access.auth_required
-def recover_event(request):
-    """Recover the contents of a specific event.
-
-    This will return the results of stats_service.backend.analytics.get(id).
-
-    If the event is not found the HTTPNotFound will be raised.
-
-    :returns: The event data stored.
-
-    """
-    log = get_log('recover_event')
-
-    event_id = request.matchdict['id'].strip().lower()
-    log.debug("Looking for event with id '{}'".format(event_id))
-
-    try:
-        event_data = analytics.get(event_id)
-
-    except ValueError:
-        raise HTTPNotFound(event_id)
-
-    log.debug("event data recovered: '{}'".format(event_data))
-
-    return event_data
+        else:
+            log.debug("logging received data: {}".format(data))
+            analytics.log(data)

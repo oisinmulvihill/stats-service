@@ -31,37 +31,63 @@ def test_log_event(logger, stats_service):
     assert response["status"] == "ok"
 
     # nothing should be there initially:
-    assert analytics.count() == 0
+    assert analytics.count("voting") == 0
 
-    data = {
-        # required:
+    tags = {
         "uid": "user-86522",
-        "event": "pnc.user.view",
-        # optional:
-        "http_user_agent": "FlappyBird/1.0 (iPod touch; iOS 8.1; Scale/2.00)",
-        "app_node": "super-node-04",
+        "event": "pnc.video.vote",
+        "username": "sam270400",
+        "competition_id": 1814,
+        "http_user_agent": "PNC/3.2.2 (iPod touch; iOS 8.1; Scale/2.00)",
+        "name": "sam270400",
+        "competition_name": "Cutest Pets!!!",
+        "datetime": "2015-11-11T15:37:07",
+        "app_node": "app-04",
         "location": "GB",
+        "video_id": 25944,
+        "video_title": "bunny shadow",
         "http_x_real_ip": "86.25.91.110",
     }
 
-    # Create a new event:
-    event_id = stats_service.api.log(data)
+    fields = {
+        "value": 1,
+    }
 
-    assert event_id is not None
+    stats_service.api.log([{
+        "measurement": "voting",
+        "tags": tags,
+        "fields": fields,
+    }])
 
-    assert analytics.count() == 1
+    assert analytics.count("voting") == 1
 
     # The is no GET api at the moment have a quick look in the backend and
     # see its ok:
-    entry = analytics.get(event_id)
+    results = analytics.find("voting")
+    assert len(results) == 1
+    results = results[0]
 
-    assert entry['uid'] == data['uid']
-    assert entry['event'] == data['event']
-    assert entry['http_user_agent'] == data['http_user_agent']
-    assert entry['app_node'] == data['app_node']
-    assert entry['location'] == data['location']
-    assert entry['http_x_real_ip'] == data['http_x_real_ip']
+    # tags type is lost, everything is a string:
+    assert results['uid'] == "user-86522"
+    assert results['video_id'] == "25944"
+    assert results['competition_id'] == "1814"
 
-    # extra fields which should be present and not empty after logging:
-    assert 'time' in entry
-    assert 'event_id' in entry
+    # field type is preserved:
+    assert results['value'] == 1
+
+    assert len(analytics.find("voting", event='pnc.video.vote')) == 1
+    assert len(analytics.find("voting", not_in_keys='stuff')) == 0
+    assert len(analytics.find("voting", competition_id='1814')) == 1
+
+    # call example metric system_startup()
+    #
+    assert len(analytics.find("server_startup")) == 0
+    assert analytics.count("server_startup") == 0
+
+    stats_service.api.system_startup()
+
+    assert analytics.count("server_startup") == 1
+    results = analytics.find("server_startup")
+    assert len(results) == 1
+    results = results[0]
+    assert 'uid' in results
