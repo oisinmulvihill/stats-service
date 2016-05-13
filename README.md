@@ -144,7 +144,7 @@ log analytic events to. For example:
 
     # Basic payload, the "event" & "uid" fields are required the rest are
     # optional
-    DATA='{"event": "pnc.test", "uid": "oisin", "now": "'"$(date)"'"}'
+    DATA='[{"fields": {"value": 1}, "tags": {"from": "oisin"}, "measurement": "ping"}]'
 
     curl -H "Accept: application/json" \
          -H "Content-Type: application/json" \
@@ -153,23 +153,10 @@ log analytic events to. For example:
          -d "$DATA" \
          http://www.pnc:20080/log/event/
 
-    "entry_4a42fcc243884bb58cb6d00759c2955d"
+    "OK"
 
 In this example the REST service is running on my vagrant devbox. The REST
-stats-service primary purpose is to log events. Individual events can be
-recovered, however there is no querying API. This is where Grafana or the
-InfluxDB admin interface come in. A basic example recovering above event via
-the API is::
-
-.. sourcecode:: bash
-
-    curl -H "Content-Type: application/json" \
-         -H "Authorization: Token $TOKEN" \
-         -X GET \
-         http://www.pnc:20080/log/event/entry_d53a4f0bd16341e7a2ce86aaeec99d21
-
-    {"uid": "oisin", "event_id": "entry_d53a4f0bd16341e7a2ce86aaeec99d21", "hostname": null, "datetime": null, "time": "2016-04-25T12:29:48.844949259Z", "now": "Mon 25 Apr 2016 13:29:48 BST", "event": "pnc.test"}
-
+stats-service primary purpose is to log events.
 
 REST API
 ~~~~~~~~
@@ -193,25 +180,10 @@ POST /log/event
 Log an analytic event which is stored into InfluxDB via the
 stats_service.backend.analytics.log(data) function. The analytics event JSON
 will be passed as a dict to log(). This data dictionary must contain at least
-uid and event fields.
+fields, tags and mesurement fields.
 
-The 'uid' field is the unique id used to tie analytic events together as part
-of the same session. It can be empty but the field is required.
-
-The 'event' field is the the end user classification string of the event. For
-example 'pnc.user.login'.
-
-The 'time' epoch timestamp will be added automatically to the data. There
-will also be an 'entry_<UUID4>' id given to the specific event.
-
-Other fields present will be stored without any further processing. The data
-needs to JSON-able and field names can't have anything other then alphanumeric
-characters in them. This is an InfluxDB restriction.
-
-The events are stored in a measurement called "analytics" in InfluxDB. On the
-server side. The environment variable TABLE_NAME is used. If its empty
-"analytics" is used by default. The measurement or table will be created when
-the first event is logged.
+The events are stored in a measurement the user provides. The measurement
+will be created when the first event is logged.
 
 .. sourcecode:: bash
 
@@ -220,7 +192,7 @@ the first event is logged.
 
     # Basic payload, the "event" & "uid" fields are required the rest are
     # optional
-    DATA='{"event": "pnc.test", "uid": "oisin", "now": "'"$(date)"'"}'
+    DATA='[{"fields": {"value": 1}, "tags": {"from": "oisin"}, "measurement": "ping"}]'
 
     curl -H "Accept: application/json" \
          -H "Content-Type: application/json" \
@@ -229,7 +201,7 @@ the first event is logged.
          -d "$DATA" \
          http://www.pnc:20080/log/event/
 
-    "entry_4a42fcc243884bb58cb6d00759c2955d"
+    "OK"
 
 
 stats-client
@@ -294,18 +266,23 @@ Behind the scene the system_startup wraps a call to log(). It looks like:
 
     api = Analytics.stats()
 
-    data = dict(
-        event='server.start',
-        uid="system-{}".format(self.app_node),
-        ip=socket.gethostbyname(self.app_node),
-        app_node=self.app_node,
-    )
+    points = [dict(
+        measurement='server_startup',
+        tags=dict(
+            uid="system-{}".format(self.app_node),
+            ip=socket.gethostbyname(self.app_node),
+            hostname=self.app_node,
+        ),
+        fields=dict(
+            # will allow you to count/avg/min/max the number of startups.
+            # lots/<time period e.g. min,day,etc> is probably bad :)
+            value=1
+        )
+    )]
 
-    api.log(data)
+    api.log(points)
 
-The event is a string and i have have a format i use for this. You are free to
-choose your own. The 'uid' in this case will be used to collect all events
-for that specific system. In the above case uid would become 'system-devbox'
-running off my vagrant devbox. In production this would be the hostname of the
-machine/VM/docker container/etc. In the above example self.app_node is set to
-the system hostname when the Analytics is instanciated.
+In the above case uid would become 'system-devbox' running off my vagrant
+devbox. In production this would be the hostname of the machine/VM/container/etc.
+In the above example self.app_node is set to the system hostname when the
+Analytics is instanciated.

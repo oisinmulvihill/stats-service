@@ -7,7 +7,7 @@ from setuptools import setup, find_packages
 
 Name = 'stats-service'
 ProjectUrl = ""
-Version = "1.1.0"
+Version = "1.1.1"
 Author = 'Oisin Mulvihill'
 AuthorEmail = 'oisin mulvihill at gmail'
 Maintainer = Author

@@ -72,3 +72,5 @@ def log_event(request):
     if data is not None:
         log.debug("logging received data: {}".format(data))
         analytics.log(data)
+
+    return "OK"
