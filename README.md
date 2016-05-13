@@ -1,9 +1,17 @@
 stats-service
 =============
 
-Analytics Gathering REST API Endpoint for storing metrics in InfluxDB. Valid
+Analytics Gathering REST API Endpoint for storing metrics in InfluxDB. This is
+a light, token auth wrapper around InfluxDB. Valid
 https://github.com/oisinmulvihill/apiaccesstoken Tokens are needed to talk to
 the service. The secret and access_token are set up in configuration.
+
+GitHub:
+ - https://github.com/oisinmulvihill/stats-service
+
+DockerHub:
+ - https://hub.docker.com/r/oisinmulvihill/stats-service/
+
 
 Dev Env Set Up
 --------------
