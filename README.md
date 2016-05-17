@@ -130,6 +130,19 @@ For example in the above case this would become::
 Doing this will secure the service so only you can log events.
 
 
+Access Details From Environment
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+If the environment variables STATS_ACCESS_SECRET and STATS_ACCESS_TOKEN are
+found, these will be used instead any configured access.json file. This will
+then configure the token pair using environment values.
+
+This is very useful when runing using the stats-service as a docker container.
+It means now disk volume needs to be mounted to present the access.json to use.
+The downside is only one token pair is available. The access.json approach
+allows for more then one pair to be set up and configured.
+
+
 REST API
 --------
 

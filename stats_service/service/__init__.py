@@ -3,6 +3,7 @@
 REST Service 'stats_service'
 
 """
+import os
 import logging
 import httplib
 
@@ -11,6 +12,7 @@ from pyramid.config import Configurator
 from stats_service.backend import db
 from stats_service.service.authorisation import init
 from stats_service.service.authorisation import TokenMW
+from stats_service.service.authorisation import init_from_env
 from stats_service.service.restfulhelpers import xyz_handler
 from stats_service.service.restfulhelpers import JSONErrorHandler
 from stats_service.service.restfulhelpers import HttpMethodOverrideMiddleware
@@ -27,10 +29,20 @@ def main(global_config, **settings):
 
     config = Configurator(settings=settings)
 
-    # configure basic token access
-    identities = settings['stats_service.access.identities']
-    log.info("Reading identities from file '{}'".format(identities))
-    init(identities)
+    access_secret = os.environ.get("STATS_ACCESS_SECRET")
+    access_token = os.environ.get("STATS_ACCESS_TOKEN")
+    if access_secret and access_token:
+        log.info("Using environment STATS_ACCESS_SECRET & STATS_ACCESS_TOKEN.")
+        init_from_env({
+            "access_secret": access_secret,
+            "access_token": access_token,
+        })
+
+    else:
+        # configure basic token access
+        identities = settings['stats_service.access.identities']
+        log.info("Reading identities from file '{}'".format(identities))
+        init(identities)
 
     log.debug("Setting up databse configuration with prefix 'influxdb.'")
     db.DB.init(settings, prefix='influxdb.')
